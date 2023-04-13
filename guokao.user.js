@@ -1,51 +1,82 @@
 // ==UserScript==
-// @name         guokao
+// @name         离场记录
 // @namespace    https://jusbin.cn/
-// @version      0.1
+// @version      0.2
 // @description  try to take over the world!
 // @author       You
 // @match        https://sys.iguokao.com/*
 // @icon         https://sys.iguokao.com/favicon.ico
-// @grant        GM_xmlhttpRequest
-// @grant        GM_notification
+// @grant        none
+// @require      https://html2canvas.hertzen.com/dist/html2canvas.min.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    //let history = [];
-    let history = new Set();
-
-    setInterval(refresh, 1000);
-
-    function refresh() {
-        const msgCnt = getMessageCount();
-        notify(msgCnt);
+    function addButton() {
+        let cssObj = {position: 'fixed', top: '50%', right:'5px', 'z-index': 9999}
+        let button = document.createElement('button'), btnStyle = button.style;
+        button.innerHTML = '离场记录';
+        button.onclick = record;
+        Object.keys(cssObj).forEach(key => (btnStyle[key] = cssObj[key]))
+        document.body.appendChild(button)
     }
 
-    function getMessageCount() {
-        let cnt = 0;
-        let currMsgs = new Set();
-        for(let msg of document.querySelectorAll(".cand-list>.cand-item")) {
-            const msgHash = hash(msg);
-            currMsgs.add(msgHash);
+    function record() {
+        const name = getName();
+        const id = getID();
+        const reason = getReason();
+        getSnapshot().then((snapshot) => copy(name, id, reason, snapshot));
+    }
+
+
+    function getName() {
+        const name = document.querySelector(".mb15.name").innerText.trim();
+        return item(name);
+    }
+
+    function getID() {
+        const name = document.querySelectorAll(".box1_item")[0].innerText.trim();
+        return item(name);
+    }
+
+    function getReason() {
+        const replies = document.querySelectorAll('.replied');
+        let reason = "";
+        if (replies && replies.length > 0) {
+            const lastReplyTime = replies[replies.length-1].querySelector('.date_text').innerText.slice(11, 16);
+            reason = lastReplyTime + " 上厕所";
         }
-
-        let newMsgs = new Set([...currMsgs].filter(x => !history.has(x)));
-        history = currMsgs;
-        return newMsgs.size;
+        console.log('reason:', reason);
+        return item(reason);
     }
 
-    function hash(item) {
-        return item.innerText.replace('未回复', '已回复');
+    async function getSnapshot() {
+        const canvas = await html2canvas(document.querySelector(".message-info"));
+        return item('', `<img src="${canvas.toDataURL()}" />`);
     }
 
-    function notify(cnt) {
-        if (cnt > 0) {
-            GM_notification({
-                text: `${cnt}条新问题`,
-                title: "国考云",
-                timeout: 3000
-            });}
+    function item(textContent, htmlContent) {
+        htmlContent = htmlContent ? htmlContent : textContent;
+        return {textContent, htmlContent}
     }
+
+    function copy(...items) {
+        const texts = items.map(({textContent, htmlContent}) => (textContent));
+        const textItem = texts.join('\t');
+
+        const htmls = items.map(({textContent, htmlContent}) => (`<td>${htmlContent}</td>`));
+        const htmlItem = "<table> <tr>" + htmls.join('') + "</tr> </table>";
+
+        const clipboardItem = new
+        ClipboardItem({'text/html':  new Blob([htmlItem],
+                                              {type: 'text/html'}),
+                       'text/plain': new Blob([textItem],
+                                              {type: 'text/plain'})});
+        navigator.clipboard.write([clipboardItem]).
+        then(_ => console.log("clipboard.write() Ok"),
+             error => alert(error));
+    }
+
+    addButton();
 })();
