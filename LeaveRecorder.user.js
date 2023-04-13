@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         离场记录
 // @namespace    https://jusbin.cn/
-// @version      0.1
+// @version      0.2
 // @description  try to take over the world!
 // @author       You
 // @match        https://sys.iguokao.com/*
@@ -31,12 +31,12 @@
 
 
     function getName() {
-        const name = document.querySelector(".mb20.name").innerText.trim();
+        const name = document.querySelector(".mb15.name").innerText.trim();
         return item(name);
     }
 
     function getID() {
-        const name = document.querySelectorAll("div.mb10.box1_item")[1].innerText.trim();
+        const name = document.querySelectorAll(".box1_item")[0].innerText.trim();
         return item(name);
     }
 
@@ -47,6 +47,7 @@
             const lastReplyTime = replies[replies.length-1].querySelector('.date_text').innerText.slice(11, 16);
             reason = lastReplyTime + " 上厕所";
         }
+        console.log('reason:', reason);
         return item(reason);
     }
 
